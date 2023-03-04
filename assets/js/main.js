@@ -15,7 +15,7 @@ const quizQuestions = [
     correctAnswer: ".push",
   },
   {
-    question: 'True or false? Index 1 of the following array is Sunday: \n const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]',
+    question: `True or false? Index 1 of the following array is Sunday: \n const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]`,
     choices: ["True", "False", "", ""],
     correctAnswer: "False",
 },
@@ -31,11 +31,13 @@ let choices = [];
 let choicesDiv = [];
 let question;
 
+let leaderboard = [];
+
 let checkAnswer;
 
 let quizStart = false;
 
-let timer = 30;
+let timer = 50;
 let score = 0;
 
 const quiz = document.getElementById("quiz-card");
@@ -45,7 +47,7 @@ function startQuiz() {
     quiz.innerHTML = "";
 
     question = document.createElement("h2");
-    question.setAttribute("class", "col-6");
+    question.setAttribute("class", "col-12");
     question.innerHTML = quizQuestions[index].question;
     quiz.appendChild(question);
 
@@ -98,52 +100,90 @@ function quizEnd(condition){
         timerEl.innerHTML = timer;
     }
 
-    var quizEndTitle = document.createElement("h2");
+    let quizEndTitle = document.createElement("h2");
     if(condition == "time"){
-        quizEndTitle.innerHTML = "Game Over, you ran out of time!";
+        quizEndTitle.innerHTML = "Quiz ended, you ran out of time!";
     }else {
-        quizEndTitle.innerHTML = "Game Over, you answered all questions!";
+        quizEndTitle.innerHTML = "Quiz finished!";
     }
     quizEndTitle.setAttribute("class", "col-6");
     quiz.appendChild(quizEndTitle);
 
-    var totalScore = (score * 10) + timer;
+    let totalScore = (score * 10) + timer;
 
-    var quizEndMessage = document.createElement("p");
+    let quizEndMessage = document.createElement("p");
     quizEndMessage.innerHTML = "You scored " + totalScore;
     quiz.appendChild(quizEndMessage);
 
-    var scoreMessage = document.createElement("p");
+    let scoreMessage = document.createElement("p");
     scoreMessage.innerHTML = "Enter your name on the leaderboard!";
     quiz.appendChild(scoreMessage);
 
-    var finalScore = document.createElement("input");
+    let finalScore = document.createElement("input");
     finalScore.setAttribute("type", "text");
-    finalScore.setAttribute("id", "highscore");
+    finalScore.setAttribute("id", "leaderboardInput");
     quiz.appendChild(finalScore);
 
-    var saveScore = document.createElement("button");
+    let saveScore = document.createElement("button");
     saveScore.innerHTML = "Save your score to the leaderboard!";
     saveScore.setAttribute("class", "btn btn-info");
     saveScore.setAttribute("onclick", "saveScoreHandler(event)");
     quiz.appendChild(saveScore);
 
-    var retakeQuizDiv = document.createElement("div");
+    let retakeQuizDiv = document.createElement("div");
     retakeQuizDiv.setAttribute("class", "row justify-content-center");
 
-    var retakeQuizBtn = document.createElement("button");
-    retakeQuizBtn.innerHTML = "Retake Quiz?";
+    let retakeQuizBtn = document.createElement("button");
+    retakeQuizBtn.innerHTML = "Retake Quiz";
     retakeQuizBtn.addEventListener("click", function(){
         location.reload();
     })
-    retakeQuizBtn.setAttribute("class", "btn btn-info");
+    retakeQuizBtn.setAttribute("class", "btn btn-info col-4");
     retakeQuizDiv.appendChild(retakeQuizBtn);
     quiz.appendChild(retakeQuizDiv);
     quiz.appendChild(checkAnswer);
 }
 
+function viewLeaderboard(){
+    timerStarted = false;
+    if(!document.getElementById("high-score-title")){
+        quiz.innerHTML = "<h2 id='high-score-title'>Leaderboard:</h2>";
+
+        getLeaderboard();
+
+        leaderboard.sort((a,b)=>{
+            if(a.scoreResult > b.scoreResult){
+                return -1;
+            } else {
+                return 1;
+            }
+        });
+
+        for(var i = 0; i < leaderboard.length; i++){
+            var scoreDiv = document.createElement("div");
+            scoreDiv.setAttribute("class", "row justify-content-center");
+            var p = document.createElement("p");
+            p.innerHTML = leaderboard[i].name + " | " + leaderboard[i].scoreResult;
+            p.setAttribute("class", "highscore-text col-3");
+            quiz.appendChild(scoreDiv);
+            scoreDiv.appendChild(p);
+        }
+
+        var goBackDiv = document.createElement("div");
+        goBackDiv.setAttribute("class", "row justify-content-center");
+
+        var goBackBtn = document.createElement("button");
+        goBackBtn.innerHTML = "Go Back";
+        goBackBtn.addEventListener("click", function(){
+            location.reload();
+        });
+        goBackBtn.setAttribute("class", "btn btn-info col-3");
+        goBackDiv.appendChild(goBackBtn);
+        quiz.appendChild(goBackDiv);
+    }
+}
+
 function nextQuestion(correct){
-    // See if the answer validation element has been created, create it if it has not
     if(!checkAnswer){
         checkAnswer = document.createElement("div");
         checkAnswer.setAttribute("id", "ans-validate-div");
@@ -191,16 +231,53 @@ function nextQuestion(correct){
 function quizBtnHandler(event){
     let targetEl = event.target;
 
-    //If target is a quiz answer button
     if(targetEl.hasAttribute("data-id")){
 
-        //Validate if the input == the answer
         if(targetEl.innerHTML == quizQuestions[index].correctAnswer){
-            // score++;
+            score++;
             nextQuestion(true);
         }
         else if(targetEl.type === "submit"){
             nextQuestion(false);
+        }
+    }
+}
+
+function saveScoreHandler(e){
+    let scoreInput = document.getElementById("leaderboardInput");
+    e.target.innerHTML = "Get on the leaderboard! Please enter your name:"
+
+    let scoreInputVal = scoreInput.value;
+
+    let leaderboardEntry = {
+        name: scoreInputVal,
+        scoreResult: (score * 10) + timer        
+    }
+
+    getLeaderboard();
+
+    leaderboard.push(leaderboardEntry);
+    
+    localStorage.setItem("leaderboardStorage", JSON.stringify(leaderboard));
+    
+    e.target.innerHTML = "Score saved";
+    e.target.setAttribute("onclick", "");
+
+    quiz.removeChild(document.getElementById("leaderboardInput"));
+}
+
+function getLeaderboard(){
+    if(!leaderboard[0]){
+        let savedScores = localStorage.getItem("leaderboardStorage");
+        
+        if(!savedScores){
+            return false;
+        }
+
+        savedScores = JSON.parse(savedScores);
+
+        for(let i = 0; i < savedScores.length; i++){
+            leaderboard.push(savedScores[i]);
         }
     }
 }
